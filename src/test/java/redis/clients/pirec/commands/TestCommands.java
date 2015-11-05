@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec.command;
+package redis.clients.pirec.commands;
 
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +21,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import redis.clients.pirec.codec.object.RedisObject;
-import redis.clients.pirec.command.RedisCommands;
+import redis.clients.pirec.commands.RedisCommands;
 
 public class TestCommands {
     static final String COMMAND = "command";

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec.command;
+package redis.clients.pirec.commands;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
