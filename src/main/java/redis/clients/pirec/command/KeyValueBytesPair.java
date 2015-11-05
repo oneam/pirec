@@ -12,20 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
+package redis.clients.pirec.command;
 
 
-public class MemberScorePair extends Pair<String, Double> {
+public class KeyValueBytesPair extends Pair<String, byte[]> {
 
-    public MemberScorePair(String member, double score) {
-        super(member, score);
+    public KeyValueBytesPair(String key, byte[] valueBytes) {
+        super(key, valueBytes);
     }
 
-    public String getMember() {
+    public String getKey() {
         return left;
     }
 
-    public double getScore() {
+    public byte[] getValueBytes() {
         return right;
     }
 }

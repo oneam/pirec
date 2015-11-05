@@ -12,11 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
+package redis.clients.pirec.command;
 
-public enum BitOp {
-    AND,
-    OR,
-    XOR,
-    NOT
+
+public class MemberScorePair extends Pair<String, Double> {
+
+    public MemberScorePair(String member, double score) {
+        super(member, score);
+    }
+
+    public String getMember() {
+        return left;
+    }
+
+    public double getScore() {
+        return right;
+    }
 }

@@ -12,20 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
+package redis.clients.pirec.command;
 
 
-public class KeyValueBytesPair extends Pair<String, byte[]> {
+public class KeyValuePair extends Pair<String, String> {
 
-    public KeyValueBytesPair(String key, byte[] valueBytes) {
-        super(key, valueBytes);
+    public KeyValuePair(String key, String value) {
+        super(key, value);
     }
 
     public String getKey() {
         return left;
     }
 
-    public byte[] getValueBytes() {
+    public String getValue() {
         return right;
     }
 }

@@ -19,10 +19,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import redis.clients.pirec.codec.RedisCommands;
 import redis.clients.pirec.codec.Validate;
 import redis.clients.pirec.codec.object.RedisArray;
 import redis.clients.pirec.codec.object.RedisObject;
+import redis.clients.pirec.command.Aggregate;
+import redis.clients.pirec.command.BitOp;
+import redis.clients.pirec.command.KeyValueBytesPair;
+import redis.clients.pirec.command.KeyValuePair;
+import redis.clients.pirec.command.KeyWeightPair;
+import redis.clients.pirec.command.MemberScorePair;
+import redis.clients.pirec.command.RedisCommands;
+import redis.clients.pirec.command.ScanResult;
 import redis.clients.pirec.io.RedisClient;
 
 public class Pirec {

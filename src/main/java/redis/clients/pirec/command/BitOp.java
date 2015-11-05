@@ -12,10 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
+package redis.clients.pirec.command;
 
-public enum Aggregate {
-    SUM,
-    MIN,
-    MAX
+public enum BitOp {
+    AND,
+    OR,
+    XOR,
+    NOT
 }

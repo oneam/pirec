@@ -12,42 +12,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
+package redis.clients.pirec.command;
 
-import java.util.Arrays;
 import java.util.Objects;
 
-public class ScanResult<T> {
-    final String cursor;
-    final T[] values;
+import redis.clients.pirec.codec.Validate;
 
-    public ScanResult(String cursor, T[] values) {
-        this.cursor = cursor;
-        this.values = values;
-    }
+public abstract class Pair<T1, T2> {
+    final T1 left;
+    final T2 right;
 
-    public String getCursor() {
-        return cursor;
-    }
-
-    public T[] getValues() {
-        return values;
+    protected Pair(T1 left, T2 right) {
+        this.left = Validate.notNull(left, "Left pair value cannot be null");
+        this.right = Validate.notNull(right, "Right pair values cannot be null");
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
-        if (!(obj instanceof ScanResult<?>)) return false;
+        if (!(obj instanceof Pair)) return false;
 
-        ScanResult<?> other = (ScanResult<?>) obj;
-        String otherCursor = other.getCursor();
-        Object[] otherValues = other.getValues();
-        return Objects.equals(cursor, otherCursor) &&
-                Arrays.deepEquals(values, otherValues);
+        Pair<?, ?> other = (Pair<?, ?>) obj;
+        return Objects.equals(left, other.left) &&
+                Objects.equals(right, other.right);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cursor, values);
+        return Objects.hash(left, right);
     }
+
 }

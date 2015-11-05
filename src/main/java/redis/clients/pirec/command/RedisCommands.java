@@ -12,16 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec.codec;
+package redis.clients.pirec.command;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
-import redis.clients.pirec.KeyValuePair;
-import redis.clients.pirec.MemberScorePair;
-import redis.clients.pirec.ScanResult;
+import redis.clients.pirec.codec.Validate;
 import redis.clients.pirec.codec.object.RedisArray;
 import redis.clients.pirec.codec.object.RedisBulkString;
 import redis.clients.pirec.codec.object.RedisError;

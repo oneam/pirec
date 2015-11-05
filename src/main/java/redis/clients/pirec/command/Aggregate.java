@@ -12,20 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
+package redis.clients.pirec.command;
 
-
-public class KeyValuePair extends Pair<String, String> {
-
-    public KeyValuePair(String key, String value) {
-        super(key, value);
-    }
-
-    public String getKey() {
-        return left;
-    }
-
-    public String getValue() {
-        return right;
-    }
+public enum Aggregate {
+    SUM,
+    MIN,
+    MAX
 }
