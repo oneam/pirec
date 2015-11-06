@@ -1624,9 +1624,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<String[]> zRangeByScore(String key, double min, double max) {
         return execute("ZRANGEBYSCORE", key, Double.toString(min), Double.toString(max))
@@ -1634,9 +1634,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<String[]> zRangeByScore(String key, double min, double max, int offset, int count) {
         return execute("ZRANGEBYSCORE", key, Double.toString(min), Double.toString(max), "LIMIT", Integer.toString(offset), Integer.toString(count))
@@ -1644,9 +1644,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<String[]> zRangeByScore(String key, String min, String max) {
         return execute("ZRANGEBYSCORE", key, min, max)
@@ -1654,9 +1654,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<String[]> zRangeByScore(String key, String min, String max, int offset, int count) {
         return execute("ZRANGEBYSCORE", key, min, max, "LIMIT", Integer.toString(offset), Integer.toString(count))
@@ -1664,9 +1664,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<MemberScorePair[]> zRangeByScoreWithScores(String key, double min, double max) {
         return execute("ZRANGEBYSCORE", key, Double.toString(min), Double.toString(max), "WITHSCORES")
@@ -1674,9 +1674,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<MemberScorePair[]> zRangeByScoreWithScores(String key, double min, double max, int offset, int count) {
         return execute(
@@ -1692,9 +1692,9 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<MemberScorePair[]> zRangeByScoreWithScores(String key, String min, String max) {
         return execute("ZRANGEBYSCORE", key, min, max, "WITHSCORES")
@@ -1702,13 +1702,311 @@ public class Pirec {
     }
 
     /**
-     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.
+     * Return a range of members in a sorted set, by score.
      *
-     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     * @see <a href="http://redis.io/commands/zrangebyscore">http://redis.io/commands/zrangebyscore</a>
      */
     public CompletableFuture<MemberScorePair[]> zRangeByScoreWithScores(String key, String min, String max, int offset, int count) {
         return execute("ZRANGEBYSCORE", key, min, max, "WITHSCORES", "LIMIT", Integer.toString(offset), Integer.toString(count))
                 .thenApply(RedisCommands::multiBulkResponseAsMemberScorePairs);
+    }
+
+    /**
+     * Determine the index of a member in a sorted set.
+     *
+     * @see <a href="http://redis.io/commands/zrank">http://redis.io/commands/zrank</a>
+     */
+    public CompletableFuture<Integer> zRank(String key, String member) {
+        return execute("ZRANK", key, member)
+                .thenApply(RedisCommands::integerOrNullResponseAsInteger);
+    }
+
+    /**
+     * Remove one or more members from a sorted set.
+     *
+     * @see <a href="http://redis.io/commands/zrem">http://redis.io/commands/zrem</a>
+     */
+    public CompletableFuture<Integer> zRem(String key, String... members) {
+        Validate.notEmpty(members, "There must be at least one member to remove");
+        String[] params = combineParams(key, members);
+        return execute("ZREM", params)
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Remove all members in a sorted set between the given lexicographical range.
+     *
+     * @see <a href="http://redis.io/commands/zremrangebylex">http://redis.io/commands/zremrangebylex</a>
+     */
+    public CompletableFuture<Integer> zRemRangeByLex(String key, String min, String max) {
+        return execute("ZREMRANGEBYLEX", key, min, max)
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Remove all members in a sorted set within the given indexes.
+     *
+     * @see <a href="http://redis.io/commands/zremrangebyrank">http://redis.io/commands/zremrangebyrank</a>
+     */
+    public CompletableFuture<Integer> zRemRangeByRank(String key, int start, int stop) {
+        return execute("ZREMRANGEBYRANK", key, Integer.toString(start), Integer.toString(stop))
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Remove all members in a sorted set within the given scores.
+     *
+     * @see <a href="http://redis.io/commands/zremrangebyscore">http://redis.io/commands/zremrangebyscore</a>
+     */
+    public CompletableFuture<Integer> zRemRangeByScore(String key, double min, double max) {
+        return execute("ZREMRANGEBYSCORE", key, Double.toString(min), Double.toString(max))
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Remove all members in a sorted set within the given scores.
+     *
+     * @see <a href="http://redis.io/commands/zremrangebyscore">http://redis.io/commands/zremrangebyscore</a>
+     */
+    public CompletableFuture<Integer> zRemRangeByScore(String key, String min, String max) {
+        return execute("ZREMRANGEBYSCORE", key, min, max)
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by index, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrange">http://redis.io/commands/zrevrange</a>
+     */
+    public CompletableFuture<String[]> zRevRange(String key, int start, int stop) {
+        return execute("ZREVRANGE", key, Integer.toString(start), Integer.toString(stop))
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by index, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrange">http://redis.io/commands/zrevrange</a>
+     */
+    public CompletableFuture<MemberScorePair[]> zRevRangeWithScores(String key, int start, int stop) {
+        return execute("ZREVRANGE", key, Integer.toString(start), Integer.toString(stop), "WITHSCORES")
+                .thenApply(RedisCommands::multiBulkResponseAsMemberScorePairs);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings..
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     */
+    public CompletableFuture<String[]> zRevRangeByLex(String key, String min, String max) {
+        return execute("ZREVRANGEBYLEX", key, min, max)
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings..
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebylex">http://redis.io/commands/zrevrangebylex</a>
+     */
+    public CompletableFuture<String[]> zRevRangeByLex(String key, String min, String max, int offset, int count) {
+        return execute("ZREVRANGEBYLEX", key, min, max, "LIMIT", Integer.toString(offset), Integer.toString(count))
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<String[]> zRevRangeByScore(String key, double min, double max) {
+        return execute("ZREVRANGEBYSCORE", key, Double.toString(min), Double.toString(max))
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<String[]> zRevRangeByScore(String key, double min, double max, int offset, int count) {
+        return execute("ZREVRANGEBYSCORE", key, Double.toString(min), Double.toString(max), "LIMIT", Integer.toString(offset), Integer.toString(count))
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<String[]> zRevRangeByScore(String key, String min, String max) {
+        return execute("ZREVRANGEBYSCORE", key, min, max)
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<String[]> zRevRangeByScore(String key, String min, String max, int offset, int count) {
+        return execute("ZREVRANGEBYSCORE", key, min, max, "LIMIT", Integer.toString(offset), Integer.toString(count))
+                .thenApply(RedisCommands::multiBulkResponseAsString);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<MemberScorePair[]> zRevRangeByScoreWithScores(String key, double min, double max) {
+        return execute("ZREVRANGEBYSCORE", key, Double.toString(min), Double.toString(max), "WITHSCORES")
+                .thenApply(RedisCommands::multiBulkResponseAsMemberScorePairs);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<MemberScorePair[]> zRevRangeByScoreWithScores(String key, double min, double max, int offset, int count) {
+        return execute(
+                "ZREVRANGEBYSCORE",
+                key,
+                Double.toString(min),
+                Double.toString(max),
+                "WITHSCORES",
+                "LIMIT",
+                Integer.toString(offset),
+                Integer.toString(count))
+                .thenApply(RedisCommands::multiBulkResponseAsMemberScorePairs);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<MemberScorePair[]> zRevRangeByScoreWithScores(String key, String min, String max) {
+        return execute("ZREVRANGEBYSCORE", key, min, max, "WITHSCORES")
+                .thenApply(RedisCommands::multiBulkResponseAsMemberScorePairs);
+    }
+
+    /**
+     * Return a range of members in a sorted set, by score, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrangebyscore">http://redis.io/commands/zrevrangebyscore</a>
+     */
+    public CompletableFuture<MemberScorePair[]> zRevRangeByScoreWithScores(String key, String min, String max, int offset, int count) {
+        return execute("ZREVRANGEBYSCORE", key, min, max, "WITHSCORES", "LIMIT", Integer.toString(offset), Integer.toString(count))
+                .thenApply(RedisCommands::multiBulkResponseAsMemberScorePairs);
+    }
+
+    /**
+     * Determine the index of a member in a sorted set, with scores ordered from high to low.
+     *
+     * @see <a href="http://redis.io/commands/zrevrank">http://redis.io/commands/zrevrank</a>
+     */
+    public CompletableFuture<Integer> zRevRank(String key, String member) {
+        return execute("ZREVRANK", key, member)
+                .thenApply(RedisCommands::integerOrNullResponseAsInteger);
+    }
+
+    /**
+     * Incrementally iterate sorted sets elements and associated scores.
+     *
+     * @see <a href="http://redis.io/commands/zscan">http://redis.io/commands/zscan</a>
+     */
+    public CompletableFuture<ScanResult<MemberScorePair>> zScan(String key, String cursor) {
+        return execute("ZSCAN", key, cursor)
+                .thenApply(RedisCommands.scanResponse(RedisCommands::multiBulkResponseAsMemberScorePairs));
+    }
+
+    /**
+     * Incrementally iterate sorted sets elements and associated scores.
+     *
+     * @see <a href="http://redis.io/commands/zscan">http://redis.io/commands/zscan</a>
+     */
+    public CompletableFuture<ScanResult<MemberScorePair>> zScan(String key, String cursor, String match) {
+        return execute("ZSCAN", key, cursor, "MATCH", match)
+                .thenApply(RedisCommands.scanResponse(RedisCommands::multiBulkResponseAsMemberScorePairs));
+    }
+
+    /**
+     * Incrementally iterate sorted sets elements and associated scores.
+     *
+     * @see <a href="http://redis.io/commands/zscan">http://redis.io/commands/zscan</a>
+     */
+    public CompletableFuture<ScanResult<MemberScorePair>> zScan(String key, String cursor, int count) {
+        return execute("ZSCAN", key, cursor, "COUNT", Integer.toString(count))
+                .thenApply(RedisCommands.scanResponse(RedisCommands::multiBulkResponseAsMemberScorePairs));
+    }
+
+    /**
+     * Incrementally iterate sorted sets elements and associated scores.
+     *
+     * @see <a href="http://redis.io/commands/zscan">http://redis.io/commands/zscan</a>
+     */
+    public CompletableFuture<ScanResult<MemberScorePair>> zScan(String key, String cursor, String match, int count) {
+        return execute("ZSCAN", key, cursor, "MATCH", match, "COUNT", Integer.toString(count))
+                .thenApply(RedisCommands.scanResponse(RedisCommands::multiBulkResponseAsMemberScorePairs));
+    }
+
+    /**
+     * Get the score associated with the given member in a sorted set.
+     *
+     * @see <a href="http://redis.io/commands/zscore">http://redis.io/commands/zscore</a>
+     */
+    public CompletableFuture<Double> zScore(String key, String member) {
+        return execute("ZSCORE", key, member)
+                .thenApply(RedisCommands::bulkStringResponseAsDouble);
+    }
+
+    /**
+     * Add multiple sorted sets and store the resulting sorted set in a new key.
+     *
+     * @see <a href="http://redis.io/commands/zunionstore">http://redis.io/commands/zunionstore</a>
+     */
+    public CompletableFuture<Integer> zUnionStore(String destKey, String... keys) {
+        Validate.notEmpty(keys, "There must be at least one key");
+        String[] params = combineParams(destKey, Integer.toString(keys.length), keys);
+        return execute("ZUNIONSTORE", params)
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Add multiple sorted sets and store the resulting sorted set in a new key.
+     *
+     * @see <a href="http://redis.io/commands/zunionstore">http://redis.io/commands/zunionstore</a>
+     */
+    public CompletableFuture<Integer> zUnionStore(String destKey, Aggregate aggregate, String... keys) {
+        Validate.notEmpty(keys, "There must be at least one key");
+        String[] params = combineParams(destKey, Integer.toString(keys.length), keys, "AGGREGATE", aggregate.toString());
+        return execute("ZUNIONSTORE", params)
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Add multiple sorted sets and store the resulting sorted set in a new key.
+     *
+     * @see <a href="http://redis.io/commands/zunionstore">http://redis.io/commands/zunionstore</a>
+     */
+    public CompletableFuture<Integer> zUnionStore(String destKey, KeyWeightPair... keyWeightPairs) {
+        Validate.notEmpty(keyWeightPairs, "There must be at least one keyWeightPair");
+        String[] params = combineParams(destKey, keyWeightPairs);
+        return execute("ZUNIONSTORE", params)
+                .thenApply(RedisCommands::integerResponseAsInteger);
+    }
+
+    /**
+     * Add multiple sorted sets and store the resulting sorted set in a new key.
+     *
+     * @see <a href="http://redis.io/commands/zunionstore">http://redis.io/commands/zunionstore</a>
+     */
+    public CompletableFuture<Integer> zUnionStore(String destKey, Aggregate aggregate, KeyWeightPair... keyWeightPairs) {
+        Validate.notEmpty(keyWeightPairs, "There must be at least one keyWeightPair");
+        String[] params = combineParams(destKey, keyWeightPairs, "AGGREGATE", aggregate.toString());
+        return execute("ZUNIONSTORE", params)
+                .thenApply(RedisCommands::integerResponseAsInteger);
     }
 
 

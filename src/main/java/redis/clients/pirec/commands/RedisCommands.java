@@ -147,6 +147,19 @@ public class RedisCommands {
         return simple.getValue();
     }
 
+    public static Long integerOrNullResponseAsLong(RedisObject response) {
+        checkForError(response);
+        if (isNull(response)) return null;
+        RedisInteger integer = checkType(response, RedisInteger.class);
+
+        return integer.getValue();
+    }
+
+    public static Integer integerOrNullResponseAsInteger(RedisObject response) {
+        Long longValue = integerOrNullResponseAsLong(response);
+        return longValue == null ? null : longValue.intValue();
+    }
+
     public static long integerResponseAsLong(RedisObject response) {
         checkForError(response);
         RedisInteger integer = checkType(response, RedisInteger.class);

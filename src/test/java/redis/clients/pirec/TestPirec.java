@@ -38,6 +38,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import redis.clients.pirec.codec.object.RedisArray;
+import redis.clients.pirec.codec.object.RedisInteger;
 import redis.clients.pirec.codec.object.RedisObject;
 import redis.clients.pirec.commands.Aggregate;
 import redis.clients.pirec.commands.BitOp;
@@ -2962,6 +2963,652 @@ public class TestPirec {
         assertEquals(actual, expected, "response");
     }
 
+    @Test
+    public void test_zRank() throws Exception {
+        String key = "sset_key";
+        String member = "b";
+        Integer expected = 1;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZRANK"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(member));
+        RedisObject response = RedisInteger.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRank(key, member);
+        verify(pirec).execute(request);
+        Integer actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRem() throws Exception {
+        String key = "sset_key";
+        String member1 = "b";
+        String member2 = "c";
+        Integer expected = 2;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREM"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(member1),
+                RedisObject.bulkString(member2));
+        RedisObject response = RedisInteger.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRem(key, member1, member2);
+        verify(pirec).execute(request);
+        Integer actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRemRangeByLex() throws Exception {
+        String key = "sset_key";
+        String min = "[a";
+        String max = "[c";
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREMRANGEBYLEX"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRemRangeByLex(key, min, max);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRemRangeByRank() throws Exception {
+        String key = "sset_key";
+        int start = 0;
+        int stop = -1;
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREMRANGEBYRANK"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Integer.toString(start)),
+                RedisObject.bulkString(Integer.toString(stop)));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRemRangeByRank(key, start, stop);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRemRangeByScore() throws Exception {
+        String key = "sset_key";
+        double min = 0;
+        double max = 4;
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREMRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Double.toString(min)),
+                RedisObject.bulkString(Double.toString(max)));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRemRangeByScore(key, min, max);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRemRangeByScore_strings() throws Exception {
+        String key = "sset_key";
+        String min = "(0";
+        String max = "(4";
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREMRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRemRangeByScore(key, min, max);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRange() throws Exception {
+        String key = "sset_key";
+        int start = 0;
+        int stop = -1;
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Integer.toString(start)),
+                RedisObject.bulkString(Integer.toString(stop)));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRange(key, start, stop);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeWithScores() throws Exception {
+        String key = "sset_key";
+        int start = 0;
+        int stop = -1;
+        MemberScorePair[] expected = reverse(TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Integer.toString(start)),
+                RedisObject.bulkString(Integer.toString(stop)),
+                RedisObject.bulkString("WITHSCORES"));
+        RedisObject response = RedisObject.array(Arrays
+                .stream(expected)
+                .flatMap(msp -> Stream.of(msp.getMember(), Double.toString(msp.getScore())))
+                .map(RedisObject::bulkString)
+                .toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<MemberScorePair[]> actualFuture = pirec.zRevRangeWithScores(key, start, stop);
+        verify(pirec).execute(request);
+        MemberScorePair[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByLex() throws Exception {
+        String key = "sset_key";
+        String min = "[c";
+        String max = "[a";
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYLEX"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRangeByLex(key, min, max);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByLex_offset_count() throws Exception {
+        String key = "sset_key";
+        String min = "[c";
+        String max = "[a";
+        int offset = 0;
+        int count = 3;
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYLEX"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max),
+                RedisObject.bulkString("LIMIT"),
+                RedisObject.bulkString(Integer.toString(offset)),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRangeByLex(key, min, max, offset, count);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScore() throws Exception {
+        String key = "sset_key";
+        double min = 3;
+        double max = 1;
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Double.toString(min)),
+                RedisObject.bulkString(Double.toString(max)));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRangeByScore(key, min, max);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScore_offset_count() throws Exception {
+        String key = "sset_key";
+        double min = 3;
+        double max = 1;
+        int offset = 0;
+        int count = 3;
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Double.toString(min)),
+                RedisObject.bulkString(Double.toString(max)),
+                RedisObject.bulkString("LIMIT"),
+                RedisObject.bulkString(Integer.toString(offset)),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRangeByScore(key, min, max, offset, count);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScore_string() throws Exception {
+        String key = "sset_key";
+        String min = "(3.5";
+        String max = "(0.5";
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRangeByScore(key, min, max);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScore_string_offset_count() throws Exception {
+        String key = "sset_key";
+        String min = "(3.5";
+        String max = "(0.5";
+        int offset = 0;
+        int count = 3;
+        String[] expected = Arrays.stream(reverse(TEST_SSET)).map(MemberScorePair::getMember).toArray(String[]::new);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max),
+                RedisObject.bulkString("LIMIT"),
+                RedisObject.bulkString(Integer.toString(offset)),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(Arrays.stream(expected).map(RedisObject::bulkString).toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<String[]> actualFuture = pirec.zRevRangeByScore(key, min, max, offset, count);
+        verify(pirec).execute(request);
+        String[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScoreWithScores() throws Exception {
+        String key = "sset_key";
+        double min = 3;
+        double max = 1;
+        MemberScorePair[] expected = reverse(TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Double.toString(min)),
+                RedisObject.bulkString(Double.toString(max)),
+                RedisObject.bulkString("WITHSCORES"));
+        RedisObject response = RedisObject.array(Arrays
+                .stream(expected)
+                .flatMap(p -> Stream.of(p.getMember(), Double.toString(p.getScore())))
+                .map(RedisObject::bulkString)
+                .toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<MemberScorePair[]> actualFuture = pirec.zRevRangeByScoreWithScores(key, min, max);
+        verify(pirec).execute(request);
+        MemberScorePair[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScoreWithScores_offset_count() throws Exception {
+        String key = "sset_key";
+        double min = 3;
+        double max = 1;
+        int offset = 0;
+        int count = 3;
+        MemberScorePair[] expected = reverse(TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(Double.toString(min)),
+                RedisObject.bulkString(Double.toString(max)),
+                RedisObject.bulkString("WITHSCORES"),
+                RedisObject.bulkString("LIMIT"),
+                RedisObject.bulkString(Integer.toString(offset)),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(Arrays
+                .stream(expected)
+                .flatMap(p -> Stream.of(p.getMember(), Double.toString(p.getScore())))
+                .map(RedisObject::bulkString)
+                .toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<MemberScorePair[]> actualFuture = pirec.zRevRangeByScoreWithScores(key, min, max, offset, count);
+        verify(pirec).execute(request);
+        MemberScorePair[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScoreWithScores_string() throws Exception {
+        String key = "sset_key";
+        String min = "(3.5";
+        String max = "(0.5";
+        MemberScorePair[] expected = reverse(TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max),
+                RedisObject.bulkString("WITHSCORES"));
+        RedisObject response = RedisObject.array(Arrays
+                .stream(expected)
+                .flatMap(p -> Stream.of(p.getMember(), Double.toString(p.getScore())))
+                .map(RedisObject::bulkString)
+                .toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<MemberScorePair[]> actualFuture = pirec.zRevRangeByScoreWithScores(key, min, max);
+        verify(pirec).execute(request);
+        MemberScorePair[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRangeByScoreWithScores_string_offset_count() throws Exception {
+        String key = "sset_key";
+        String min = "(3.5";
+        String max = "(0.5";
+        int offset = 0;
+        int count = 3;
+        MemberScorePair[] expected = reverse(TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANGEBYSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(min),
+                RedisObject.bulkString(max),
+                RedisObject.bulkString("WITHSCORES"),
+                RedisObject.bulkString("LIMIT"),
+                RedisObject.bulkString(Integer.toString(offset)),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(Arrays
+                .stream(expected)
+                .flatMap(p -> Stream.of(p.getMember(), Double.toString(p.getScore())))
+                .map(RedisObject::bulkString)
+                .toArray(RedisObject[]::new));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<MemberScorePair[]> actualFuture = pirec.zRevRangeByScoreWithScores(key, min, max, offset, count);
+        verify(pirec).execute(request);
+        MemberScorePair[] actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zRevRank() throws Exception {
+        String key = "sset_key";
+        String member = "b";
+        Integer expected = 1;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZREVRANK"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(member));
+        RedisObject response = RedisInteger.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zRevRank(key, member);
+        verify(pirec).execute(request);
+        Integer actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zScan() throws Exception {
+        String key = "sset_key";
+        String cursor = "0";
+        ScanResult<MemberScorePair> expected = new ScanResult<>(cursor, TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZSCAN"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(cursor));
+        RedisObject response = RedisObject.array(
+                RedisObject.bulkString(cursor),
+                RedisObject.array(Arrays
+                        .stream(expected.getValues())
+                        .flatMap(msp -> Stream.of(
+                                RedisObject.bulkString(msp.getMember()),
+                                RedisObject.bulkString(Double.toString(msp.getScore()))))
+                        .toArray(RedisObject[]::new)));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<ScanResult<MemberScorePair>> actualFuture = pirec.zScan(key, cursor);
+        verify(pirec).execute(request);
+        ScanResult<MemberScorePair> actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zScan_match() throws Exception {
+        String key = "sset_key";
+        String match = "?";
+        String cursor = "0";
+        ScanResult<MemberScorePair> expected = new ScanResult<>(cursor, TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZSCAN"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(cursor),
+                RedisObject.bulkString("MATCH"),
+                RedisObject.bulkString(match));
+        RedisObject response = RedisObject.array(
+                RedisObject.bulkString(cursor),
+                RedisObject.array(Arrays
+                        .stream(expected.getValues())
+                        .flatMap(msp -> Stream.of(
+                                RedisObject.bulkString(msp.getMember()),
+                                RedisObject.bulkString(Double.toString(msp.getScore()))))
+                        .toArray(RedisObject[]::new)));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<ScanResult<MemberScorePair>> actualFuture = pirec.zScan(key, cursor, match);
+        verify(pirec).execute(request);
+        ScanResult<MemberScorePair> actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zScan_count() throws Exception {
+        String key = "sset_key";
+        int count = 10;
+        String cursor = "0";
+        ScanResult<MemberScorePair> expected = new ScanResult<>(cursor, TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZSCAN"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(cursor),
+                RedisObject.bulkString("COUNT"),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(
+                RedisObject.bulkString(cursor),
+                RedisObject.array(Arrays
+                        .stream(expected.getValues())
+                        .flatMap(msp -> Stream.of(
+                                RedisObject.bulkString(msp.getMember()),
+                                RedisObject.bulkString(Double.toString(msp.getScore()))))
+                        .toArray(RedisObject[]::new)));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<ScanResult<MemberScorePair>> actualFuture = pirec.zScan(key, cursor, count);
+        verify(pirec).execute(request);
+        ScanResult<MemberScorePair> actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zScan_match_count() throws Exception {
+        String key = "sset_key";
+        String cursor = "0";
+        String match = "?";
+        int count = 10;
+        ScanResult<MemberScorePair> expected = new ScanResult<>(cursor, TEST_SSET);
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZSCAN"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(cursor),
+                RedisObject.bulkString("MATCH"),
+                RedisObject.bulkString(match),
+                RedisObject.bulkString("COUNT"),
+                RedisObject.bulkString(Integer.toString(count)));
+        RedisObject response = RedisObject.array(
+                RedisObject.bulkString(cursor),
+                RedisObject.array(Arrays
+                        .stream(expected.getValues())
+                        .flatMap(msp -> Stream.of(
+                                RedisObject.bulkString(msp.getMember()),
+                                RedisObject.bulkString(Double.toString(msp.getScore()))))
+                        .toArray(RedisObject[]::new)));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<ScanResult<MemberScorePair>> actualFuture = pirec.zScan(key, cursor, match, count);
+        verify(pirec).execute(request);
+        ScanResult<MemberScorePair> actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zScore() throws Exception {
+        String key = "sset_key";
+        String member = "b";
+        double expected = 2;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZSCORE"),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString(member));
+        RedisObject response = RedisInteger.bulkString(Double.toString(expected));
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Double> actualFuture = pirec.zScore(key, member);
+        verify(pirec).execute(request);
+        Double actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zUnionStore_keys() throws Exception {
+        String destKey = "sset2_key";
+        String key = "sset_key";
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZUNIONSTORE"),
+                RedisObject.bulkString(destKey),
+                RedisObject.bulkString(Integer.toString(1)),
+                RedisObject.bulkString(key));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zUnionStore(destKey, key);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zUnionStore_keys_aggregate() throws Exception {
+        String destKey = "sset2_key";
+        String key = "sset_key";
+        Aggregate aggregate = Aggregate.MAX;
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZUNIONSTORE"),
+                RedisObject.bulkString(destKey),
+                RedisObject.bulkString(Integer.toString(1)),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString("AGGREGATE"),
+                RedisObject.bulkString("MAX"));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zUnionStore(destKey, aggregate, key);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zUnionStore_keyWeightPairs() throws Exception {
+        String destKey = "sset2_key";
+        String key = "sset_key";
+        Double weight = 1.1;
+        KeyWeightPair pair = new KeyWeightPair(key, weight);
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZUNIONSTORE"),
+                RedisObject.bulkString(destKey),
+                RedisObject.bulkString(Integer.toString(1)),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString("WEIGHTS"),
+                RedisObject.bulkString(Double.toString(weight)));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zUnionStore(destKey, pair);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
+    @Test
+    public void test_zUnionStore_keyWeightPairs_aggregate() throws Exception {
+        String destKey = "sset2_key";
+        String key = "sset_key";
+        Double weight = 1.1;
+        KeyWeightPair pair = new KeyWeightPair(key, weight);
+        Aggregate aggregate = Aggregate.MAX;
+        int expected = 3;
+        RedisObject request = RedisObject.array(
+                RedisObject.bulkString("ZUNIONSTORE"),
+                RedisObject.bulkString(destKey),
+                RedisObject.bulkString(Integer.toString(1)),
+                RedisObject.bulkString(key),
+                RedisObject.bulkString("WEIGHTS"),
+                RedisObject.bulkString(Double.toString(weight)),
+                RedisObject.bulkString("AGGREGATE"),
+                RedisObject.bulkString("MAX"));
+        RedisObject response = RedisObject.integer(expected);
+        doReturn(CompletableFuture.completedFuture(response)).when(client).sendRequest(eq(request));
+
+        CompletableFuture<Integer> actualFuture = pirec.zUnionStore(destKey, aggregate, pair);
+        verify(pirec).execute(request);
+        int actual = actualFuture.get();
+        assertEquals(actual, expected, "response");
+    }
+
     byte[] utf8Bytes(String string) {
         return string.getBytes(StandardCharsets.UTF_8);
     }
@@ -2971,5 +3618,13 @@ public class TestPirec {
                 .map(i -> bytes[i])
                 .mapToObj(Integer::toString)
                 .collect(Collectors.joining(", "));
+    }
+
+    <T> T[] reverse(T[] array) {
+        T[] result = Arrays.copyOf(array, array.length);
+        for (int i = 0; i < array.length; ++i) {
+            result[array.length - i - 1] = array[i];
+        }
+        return result;
     }
 }
