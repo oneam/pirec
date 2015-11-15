@@ -12,13 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package redis.clients.pirec;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+
+import redis.clients.pirec.Pirec;
 
 public class Benchmark {
 
@@ -31,7 +32,7 @@ public class Benchmark {
         long[] latency = new long[numRequests];
 
         long start = System.nanoTime();
-        Semaphore rateLimiter = new Semaphore(500);
+        Semaphore rateLimiter = new Semaphore(300);
         for (int i = 1; i <= numRequests; ++i) {
             rateLimiter.acquire();
             int latencyIndex = i - 1;
@@ -71,19 +72,19 @@ public class Benchmark {
         System.out.format("Total time: %s\n", duration);
 
         double rate = (double) numRequests / (double) duration.toNanos() * 1e9;
-        System.out.format("Rate: %s\n", rate);
+        System.out.format("Rate: %,.0f TPS\n", rate);
 
         System.out.format("Success: %s\n", successCounter.get());
         System.out.format("Error: %s\n", errorCounter.get());
 
         Arrays.sort(latency);
         double p50ms = (double) latency[numRequests / 2] / 1e6;
-        System.out.format("P50 latency: %fms\n", p50ms);
+        System.out.format("P50 latency: %.3fms\n", p50ms);
 
         double p90ms = (double) latency[numRequests * 9 / 10] / 1e6;
-        System.out.format("P90 latency: %fms\n", p90ms);
+        System.out.format("P90 latency: %.3fms\n", p90ms);
 
         double p99ms = (double) latency[numRequests * 99 / 100] / 1e6;
-        System.out.format("P99 latency: %fms\n", p99ms);
+        System.out.format("P99 latency: %.3fms\n", p99ms);
     }
 }
