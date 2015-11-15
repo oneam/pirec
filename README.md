@@ -15,8 +15,8 @@ Pirec takes a different approach. _Every_ command is sent through a Pirec client
 There's a Benchmark class included so that you can see for yourself. I've demonstrated a throughput of 400000 TPS for random GET and SET operations with no latency degradation.
 
 
-Building the cient
-------------------
+Building
+--------
 
 Pirec is built using Gradle. You can use the included gradlew scripts to build the library:
 
