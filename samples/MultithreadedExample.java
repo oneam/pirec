@@ -41,7 +41,7 @@ public class MultithreadedExample {
             }
         };
 
-        int numThreads = 100;
+        int numThreads = 300;
         for (int i = 0; i < numThreads; ++i) {
             Thread thread = new Thread(getSetLoop); // Start each thread
             thread.start();

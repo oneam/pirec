@@ -19,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
 
 import redis.clients.pirec.codec.Decoder.DecoderException;
 import redis.clients.pirec.codec.RedisDecoder;
@@ -34,24 +35,27 @@ public class TestSocketAdapter implements SocketAdapter {
     int responsesPerPacket = 1;
     int responsesPending = 0;
 
-    Object readSync = new Object();
+    Object bufferSync = new Object();
     ByteBuffer readBuffer;
+    ByteBuffer writeBuffer;
     CompletableFuture<Integer> readFuture;
+    CompletableFuture<Integer> writeFuture;
 
     public void put(RedisObject request, RedisObject response) {
         responses.put(request, response);
     }
 
-    public void setNumResponsesPerPacket(int responsesPerPacket) {
-
-    }
-
     public void close() {
-        synchronized (readSync) {
+        synchronized (bufferSync) {
             CompletableFuture<Integer> readFuture = this.readFuture;
             this.readFuture = null;
             this.readBuffer = null;
             if (readFuture != null) readFuture.complete(0);
+
+            CompletableFuture<Integer> writeFuture = this.writeFuture;
+            this.writeFuture = null;
+            this.writeBuffer = null;
+            if (writeFuture != null) writeFuture.complete(0);
         }
     }
 
@@ -62,49 +66,99 @@ public class TestSocketAdapter implements SocketAdapter {
 
     @Override
     public CompletableFuture<Integer> write(ByteBuffer src) {
-        try {
-            Thread.sleep(10); // Simulate some network lag
-
-            // Read requests and find responses
-            int bytesWritten = src.remaining();
-            int bytesRead = 0;
-            RedisObject request = decoder.decode(src);
-            int requestsProcessed = 0;
-            while (request != null) {
-                decoder.reset();
-                ++requestsProcessed;
-                RedisObject response = responses.get(request);
-                if (response == null) {
-                    response = RedisObject.error("Response not found");
-                }
-                bytesRead += encoder.encode(response, readBuffer);
-                request = decoder.decode(src);
-            }
-
-            if (requestsProcessed > 1) System.out.format("Requests processed %d\n", requestsProcessed);
-
-            // Complete response futures
-            if (bytesRead > 0) {
-                synchronized (readSync) {
-                    CompletableFuture<Integer> readFuture = this.readFuture;
-                    this.readFuture = null;
-                    this.readBuffer = null;
-                    if (readFuture != null) readFuture.complete(bytesRead);
-                }
-            }
-            return CompletableFuture.completedFuture(bytesWritten);
-        } catch (DecoderException | RedisEncodeException | InterruptedException e) {
-            e.printStackTrace();
-            return NioFutures.completedExceptionally(e);
+        CompletableFuture<Integer> writeFuture = new CompletableFuture<>();
+        synchronized (bufferSync) {
+            this.writeFuture = writeFuture;
+            this.writeBuffer = src;
         }
+        ForkJoinPool.commonPool().execute(this::readWrite);
+        return writeFuture;
+    }
+
+    void readWrite() {
+        ByteBuffer writeBuffer;
+        ByteBuffer readBuffer;
+        synchronized (bufferSync) {
+            writeBuffer = this.writeBuffer;
+            readBuffer = this.readBuffer;
+            if (readBuffer == null) return;
+            if (writeBuffer == null) return;
+
+            try {
+                // Read requests and find responses
+                int bytesWritten = writeBuffer.remaining();
+                int bytesRead = 0;
+                RedisObject request = decoder.decode(writeBuffer);
+                int requestsProcessed = 0;
+                while (request != null) {
+                    decoder.reset();
+                    ++requestsProcessed;
+                    RedisObject response = responses.get(request);
+                    if (response == null) {
+                        response = RedisObject.error("Response not found");
+                    }
+                    bytesRead += encoder.encode(response, readBuffer);
+                    request = decoder.decode(writeBuffer);
+                }
+
+                if (requestsProcessed > 1) System.out.format("Requests processed %d\n", requestsProcessed);
+                if (bytesRead > 0) completeRead(bytesRead);
+                completeWrite(bytesWritten);
+            } catch (DecoderException | RedisEncodeException e) {
+                e.printStackTrace();
+                completeWrite(e);
+            }
+        }
+    }
+
+    void completeWrite(int numBytes) {
+        CompletableFuture<Integer> writeFuture;
+        synchronized (bufferSync) {
+            writeFuture = this.writeFuture;
+            this.writeFuture = null;
+            this.writeBuffer = null;
+        }
+        writeFuture.complete(numBytes);
+    }
+
+    void completeWrite(Throwable ex) {
+        CompletableFuture<Integer> writeFuture;
+        synchronized (bufferSync) {
+            writeFuture = this.writeFuture;
+            this.writeFuture = null;
+            this.writeBuffer = null;
+        }
+        writeFuture.completeExceptionally(ex);
+    }
+
+    void completeRead(int numBytes) {
+        CompletableFuture<Integer> readFuture;
+        synchronized (bufferSync) {
+            readFuture = this.readFuture;
+            this.readFuture = null;
+            this.readBuffer = null;
+        }
+        readFuture.complete(numBytes);
+    }
+
+    void completeRead(Throwable ex) {
+        CompletableFuture<Integer> readFuture;
+        synchronized (bufferSync) {
+            readFuture = this.readFuture;
+            this.readFuture = null;
+            this.readBuffer = null;
+        }
+        readFuture.completeExceptionally(ex);
     }
 
     @Override
     public CompletableFuture<Integer> read(ByteBuffer dst) {
-        synchronized (readSync) {
-            readFuture = new CompletableFuture<>();
-            readBuffer = dst;
+        CompletableFuture<Integer> readFuture = new CompletableFuture<>();
+        synchronized (bufferSync) {
+            this.readFuture = readFuture;
+            this.readBuffer = dst;
         }
+        ForkJoinPool.commonPool().execute(this::readWrite);
         return readFuture;
     }
 }

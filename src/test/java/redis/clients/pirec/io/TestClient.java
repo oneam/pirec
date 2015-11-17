@@ -100,7 +100,7 @@ public class TestClient {
             });
         }
 
-        boolean success = done.await(20, TimeUnit.SECONDS);
+        boolean success = done.await(10, TimeUnit.SECONDS);
         Assert.assertTrue(success, "success");
     }
 
