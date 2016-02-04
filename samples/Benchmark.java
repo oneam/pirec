@@ -38,7 +38,7 @@ public class Benchmark {
             int latencyIndex = i - 1;
             long requestStart = System.nanoTime();
             String requestKey = Integer.toString(i);
-            CompletableFuture<String> sendFuture = pirec.get(requestKey);
+            CompletableFuture<String> sendFuture = pirec.echo(requestKey);
             sendFuture.whenComplete((responseKey, exc) -> {
                 rateLimiter.release();
                 long requestEnd = System.nanoTime();
