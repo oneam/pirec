@@ -3,6 +3,9 @@ plugins {
     id "jacoco"
     id "eclipse"
     id "com.github.kt3k.coveralls" version "2.5.0"
+    id "com.jfrog.bintray" version "1.6"
+    id "maven"
+    id "maven-publish"
 }
 
 repositories {
@@ -26,3 +29,32 @@ jacocoTestReport {
 }
 
 check.dependsOn jacocoTestReport
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    publications = ['mavenPublication']
+
+    pkg {
+        repo = 'maven'
+        name = 'Pirec'
+        desc = "A fully pipelined Redis client for high-throughput operation"
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/oneam/pirec.git'
+        labels = ['redis', 'client', 'database']
+        version {
+            name = '0.1-Beta'
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenPublication(MavenPublication) {
+            from components.java
+            groupId 'redis.clients.pirec'
+            artifactId 'pirec'
+            version '0.1-Beta'
+        }
+    }
+}

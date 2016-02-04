@@ -41,6 +41,29 @@ Pirec is built using Gradle. You can use the included gradlew scripts to build t
 
 Pirec.jar will end up in the build/jar directory.
 
+Including Pirec in your project
+-------------------------------
+
+### Gradle
+
+Add the following to your build.gradle
+
+```
+repositories {
+    maven {
+        url  "http://dl.bintray.com/oneam/maven" 
+    }
+}
+
+dependencies {
+    compile 'redis.clients.pirec:pirec:0.1-Beta'
+}
+```
+
+### Everything Else
+
+Go to https://bintray.com/package/buildSettings?pkgPath=%2Foneam%2Fmaven%2FPirec for details
+
 Using the client
 -----------------
 
