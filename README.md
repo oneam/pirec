@@ -3,7 +3,7 @@ Pirec
 
 A fully pipelined Redis client for high-throughput operation.
 
-[![Build Status](https://travis-ci.org/oneam/pirec.svg)](https://travis-ci.org/oneam/pirec) [![Coverage Status](https://coveralls.io/repos/oneam/pirec/badge.svg?branch=master&service=github)](https://coveralls.io/github/oneam/pirec?branch=master)
+[![Build Status](https://travis-ci.org/oneam/pirec.svg)](https://travis-ci.org/oneam/pirec) [![codecov.io](https://codecov.io/github/oneam/pirec/coverage.svg?branch=master)](https://codecov.io/github/oneam/pirec?branch=master)
 
 Why Another Redis client?
 -------------------------
