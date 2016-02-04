@@ -72,7 +72,6 @@ public class TestServer {
                 readBuffer.flip();
                 RedisObject request = decoder.decode(readBuffer);
                 while (request != null) {
-                    decoder.reset();
                     byte[][] response = responses.get(request);
                     if (response == null) {
                         response = encoder.encode(RedisObject.error("Response not found"));

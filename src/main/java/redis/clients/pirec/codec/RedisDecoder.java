@@ -17,10 +17,11 @@ package redis.clients.pirec.codec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+import redis.clients.pirec.codec.Decoder.DecoderException;
 import redis.clients.pirec.codec.object.RedisArray;
 import redis.clients.pirec.codec.object.RedisObject;
 
-public class RedisDecoder extends Decoder<RedisObject> {
+public class RedisDecoder {
     static final byte[] CRLF = "\r\n".getBytes(StandardCharsets.UTF_8);
     static final byte SIMPLE_STRING_BYTE = "+".getBytes(StandardCharsets.UTF_8)[0];
     static final byte ERROR_BYTE = "-".getBytes(StandardCharsets.UTF_8)[0];
@@ -34,14 +35,12 @@ public class RedisDecoder extends Decoder<RedisObject> {
         this.decoder = newDecoder();
     }
 
-    @Override
-    public RedisObject decode(ByteBuffer buffer) throws redis.clients.pirec.codec.Decoder.DecoderException {
-        return decoder.decode(buffer);
-    }
-
-    @Override
-    public void reset() {
-        decoder.reset();
+    public RedisObject decode(ByteBuffer buffer) throws DecoderException {
+        RedisObject object = decoder.decode(buffer);
+        if (object != null) {
+            decoder.reset();
+        }
+        return object;
     }
 
     static Decoder<RedisObject> newDecoder() {

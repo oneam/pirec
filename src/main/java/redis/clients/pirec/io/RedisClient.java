@@ -15,15 +15,12 @@
 package redis.clients.pirec.io;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
-import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.NoSuchElementException;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import redis.clients.pirec.codec.Decoder.DecoderException;
 import redis.clients.pirec.codec.RedisDecoder;
@@ -40,14 +37,16 @@ public class RedisClient {
     final ByteBuffer readBuffer = ByteBuffer.allocate(1048576);
     final ByteBuffer writeBuffer = ByteBuffer.allocate(1048576);
 
-    final Queue<CompletableFuture<RedisObject>> responseQueue = new ArrayDeque<>();
-    final Queue<byte[][]> requestQueue = new ArrayDeque<byte[][]>();
-    boolean readyToSend = true;
+    final ConcurrentLinkedDeque<RedisObject> requestQueue = new ConcurrentLinkedDeque<>();
+    final ConcurrentLinkedDeque<CompletableFuture<RedisObject>> responseQueue = new ConcurrentLinkedDeque<>();
+    final Object sendSync = new Object();
 
+    boolean writing = false;
+    boolean reading = false;
     boolean connected = false;
 
     public RedisClient() {
-        this(new AsynchronousSocketChannelAdapter());
+        this(new SocketChannelAdapter());
     }
 
     public RedisClient(SocketAdapter socketAdapter) {
@@ -69,12 +68,6 @@ public class RedisClient {
             }
         });
 
-        connectFuture.whenCompleteAsync((r, e) -> {
-            if (e == null) {
-                startRead();
-            }
-        });
-
         return connectFuture;
     }
 
@@ -88,25 +81,40 @@ public class RedisClient {
             return;
         }
 
-        synchronized (responseQueue) {
-            if (!connected) return;
+        if (!connected) return;
 
+        synchronized (sendSync) {
             connected = false;
-            CompletableFuture<RedisObject> responseFuture = responseQueue.poll();
-            while (responseFuture != null) {
-                responseFuture.completeExceptionally(e);
-                responseFuture = responseQueue.poll();
-            }
+            completeOutstandingRequestsExceptionally(e);
         }
     }
 
     void onClosed() {
         if (!connected) return;
-        connected = false;
+
+        synchronized (sendSync) {
+            connected = false;
+            completeOutstandingRequestsExceptionally(new IOException("Redis client not connected"));
+        }
+    }
+
+    void completeOutstandingRequestsExceptionally(Throwable e) {
+        CompletableFuture<RedisObject> responseFuture = responseQueue.poll();
+        while (responseFuture != null) {
+            responseFuture.completeExceptionally(e);
+            responseFuture = responseQueue.poll();
+        }
     }
 
     void startRead() {
-        socket.read(readBuffer).whenCompleteAsync((bytesRead, e) -> {
+        synchronized (sendSync) {
+            if (responseQueue.isEmpty()) {
+                reading = false;
+                return;
+            }
+        }
+
+        socket.read(readBuffer).whenComplete((bytesRead, e) -> {
             if (e != null) {
                 onFailed(e);
                 return;
@@ -132,29 +140,33 @@ public class RedisClient {
         RedisObject nextMessage = decoder.decode(readBuffer);
         while (nextMessage != null) {
             CompletableFuture<RedisObject> responseFuture;
-            synchronized (responseQueue) {
-                responseFuture = responseQueue.remove();
-            }
+            responseFuture = responseQueue.remove();
             responseFuture.complete(nextMessage);
-            decoder.reset();
             nextMessage = decoder.decode(readBuffer);
         }
     }
 
     void startWrite() {
         try {
-            synchronized (requestQueue) {
-                processRequests();
-                writeBuffer.flip();
+            processRequests(); // Process as many as you can before locking
 
+            synchronized (sendSync) {
+                processRequests(); // Ensure request queue is empty after locking
+
+                writeBuffer.flip();
                 if (!writeBuffer.hasRemaining()) {
                     writeBuffer.compact();
-                    readyToSend = true;
+                    writing = false;
                     return;
+                }
+
+                if (!reading) {
+                    reading = true;
+                    CompletableFuture.runAsync(this::startRead);
                 }
             }
 
-            socket.write(writeBuffer).whenCompleteAsync((bytesWritten, e) -> {
+            socket.write(writeBuffer).whenComplete((bytesWritten, e) -> {
                 if (e != null) {
                     onFailed(e);
                     return;
@@ -173,55 +185,39 @@ public class RedisClient {
     }
 
     void processRequests() throws InterruptedException {
-        byte[][] request = requestQueue.peek();
+        RedisObject request = requestQueue.poll();
 
-        while (request != null) {
-            int bytesWritten = addToBuffer(request, writeBuffer);
-            if (bytesWritten <= 0) {
-                break;
+        try {
+            while (request != null) {
+                int bytesWritten = encoder.encode(request, writeBuffer);
+                if (bytesWritten <= 0) {
+                    requestQueue.addFirst(request);
+                    break;
+                }
+
+                request = requestQueue.poll();
             }
-
-            requestQueue.remove();
-            request = requestQueue.peek();
+        } catch (RedisEncodeException e) {
+            onFailed(e);
         }
-    }
-
-    int addToBuffer(byte[][] request, ByteBuffer buffer) {
-        int totalSize = Arrays.stream(request).mapToInt(Array::getLength).sum();
-        if (buffer.remaining() < totalSize) {
-            return 0;
-        }
-
-        for (byte[] bytes : request) {
-            buffer.put(bytes);
-        }
-
-        return totalSize;
     }
 
     public CompletableFuture<RedisObject> sendRequest(RedisObject request) {
-        if (!connected) {
-            return NioFutures.completedExceptionally(new IOException("Redis client not connected"));
-        }
-
         CompletableFuture<RedisObject> responseFuture = new CompletableFuture<RedisObject>();
 
-        try {
-            byte[][] requestBytes = encoder.encode(request);
-
-            synchronized (requestQueue) {
-                synchronized (responseQueue) {
-                    responseQueue.add(responseFuture);
-                }
-                requestQueue.add(requestBytes);
-
-                if (readyToSend) {
-                    readyToSend = false;
-                    CompletableFuture.runAsync(this::startWrite);
-                }
+        synchronized (sendSync) {
+            if (!connected) {
+                responseFuture.completeExceptionally(new IOException("Redis client not connected"));
+                return responseFuture;
             }
-        } catch (RedisEncodeException e) {
-            responseFuture.completeExceptionally(e);
+
+            responseQueue.add(responseFuture);
+            requestQueue.add(request);
+
+            if (!writing) {
+                writing = true;
+                CompletableFuture.runAsync(this::startWrite);
+            }
         }
 
         return responseFuture;

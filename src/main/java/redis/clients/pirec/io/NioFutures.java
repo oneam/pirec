@@ -14,6 +14,8 @@
  */
 package redis.clients.pirec.io;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,7 +24,7 @@ public class NioFutures {
         throw new UnsupportedOperationException();
     }
 
-    private static class NioFutureHandler<R> implements CompletionHandler<R, CompletableFuture<R>> {
+    private static class NioAsyncHandler<R> implements CompletionHandler<R, CompletableFuture<R>> {
 
         @Override
         public void completed(R result, CompletableFuture<R> future) {
@@ -35,24 +37,52 @@ public class NioFutures {
         }
     }
 
-    public static <R> CompletableFuture<R> get(NioSupplier<R> nioAction) {
+    public static <R> CompletableFuture<R> get(NioAsyncSupplier<R> nioAction) {
         CompletableFuture<R> future = new CompletableFuture<R>();
-        nioAction.get(future, new NioFutureHandler<R>());
+        nioAction.get(future, new NioAsyncHandler<R>());
         return future;
     }
 
-    public interface NioSupplier<R> {
+    public interface NioAsyncSupplier<R> {
         void get(CompletableFuture<R> future, CompletionHandler<R, CompletableFuture<R>> handler);
     }
 
-    public static <T1, R> CompletableFuture<R> apply(NioFunction<T1, R> nioAction, T1 param1) {
+    public static <T1, R> CompletableFuture<R> apply(NioAsyncFunction<T1, R> nioAction, T1 param1) {
         CompletableFuture<R> future = new CompletableFuture<R>();
-        nioAction.apply(param1, future, new NioFutureHandler<R>());
+        nioAction.apply(param1, future, new NioAsyncHandler<R>());
         return future;
     }
 
-    public interface NioFunction<T, R> {
+    public interface NioAsyncFunction<T, R> {
         void apply(T t, CompletableFuture<R> future, CompletionHandler<R, CompletableFuture<R>> handler);
+    }
+
+    public static <T1, R> CompletableFuture<R> applyAsync(NioFunction<T1, R> nioAction, T1 param1) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return nioAction.apply(param1);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+    }
+
+    public interface NioFunction<T, R> {
+        R apply(T t) throws IOException;
+    }
+
+    public static <T> CompletableFuture<Void> acceptAsync(NioConsumer<T> nioAction, T param) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                nioAction.accept(param);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+    }
+
+    public interface NioConsumer<T> {
+        void accept(T t) throws IOException;
     }
 
     public static <R> CompletableFuture<R> completedExceptionally(Throwable ex) {

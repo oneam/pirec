@@ -30,6 +30,10 @@ public class RedisBulkString extends RedisObject {
         return content;
     }
 
+    public String getContentAsString() {
+        return new String(content, StandardCharsets.UTF_8);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;

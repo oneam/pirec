@@ -44,33 +44,6 @@ public class TestDecoder {
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             RedisObject actual = decoder.decode(buffer);
             Assert.assertEquals(actual, expected, "actual");
-
-            // Test that values persist until reset
-            RedisObject beforeReset = decoder.decode(buffer);
-            Assert.assertEquals(beforeReset, expected, "beforeReset");
-            decoder.reset();
-            RedisObject afterReset = decoder.decode(buffer);
-            Assert.assertNull(afterReset, "afterReset");
-        }
-    }
-
-    @Test(dataProvider = "data_redis_decoder")
-    public void test_redis_decoder_with_reset(String description, byte[] input, RedisObject object)
-            throws DecoderException {
-        RedisDecoder decoder = new RedisDecoder();
-
-        // Test all variations of input (from 0 bytes to the full message)
-        for (int i = 0; i <= input.length; ++i) {
-            decoder.reset();
-
-            byte[] bytes = Arrays.copyOfRange(input, 0, i);
-
-            // Result should be null for all variations except complete message
-            RedisObject expected = i == input.length ? object : null;
-
-            ByteBuffer buffer = ByteBuffer.wrap(bytes);
-            RedisObject actual = decoder.decode(buffer);
-            Assert.assertEquals(actual, expected);
         }
     }
 
@@ -213,7 +186,6 @@ public class TestDecoder {
         while (buffer.hasRemaining()) {
             RedisObject object = decoder.decode(buffer);
             Assert.assertNotNull(object, "Decoded object");
-            decoder.reset();
             count += 6; // 6 RedisObjects (5 + array)
         }
         long end = System.nanoTime();

@@ -91,7 +91,6 @@ public class TestSocketAdapter implements SocketAdapter {
                 RedisObject request = decoder.decode(writeBuffer);
                 int requestsProcessed = 0;
                 while (request != null) {
-                    decoder.reset();
                     ++requestsProcessed;
                     RedisObject response = responses.get(request);
                     if (response == null) {

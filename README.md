@@ -10,13 +10,28 @@ Why Another Redis client?
 
 Redis has this cool feature called [Pipelining](http://redis.io/topics/pipelining) that allows multiple requests to be sent without waiting for each reply. The RedisLab documentation claims that you can improve your throughput by a factor of 5 by using pipelining. However, in order to use the feature in most clients you are forced to batch together all of the requests you want to send and wait for all of the responses.
 
-Pirec takes a different approach. _Every_ command is sent through a Pirec client is pipelined. As a result, the throughput can increase by a factor of 5-10x for _all_ requests (especially under high load).
+Pirec uses a combination of features built around pipelining to improve overall performance. There's a Benchmark class included so that you can see for yourself. I've demonstrated a throughput of 400000 TPS for random GET and SET operations with no latency degradation.
 
-There's a Benchmark class included so that you can see for yourself. I've demonstrated a throughput of 400000 TPS for random GET and SET operations with no latency degradation.
+Pirec uses a combination of 3 features to improve performance:
 
+### Asynchronous Commands
 
-Building
---------
+In order to allow multiple commands to be sent at once, it's helpful to separate sending requests and receiving responses. All request methods on the Pirec client return a CompletableFuture response which represents the value of the response once it arrives.
+
+CompletableFuture was chosen as it also provides the ability to be composed with other futures into full asynchronous workflows.
+
+### Multiplexing
+
+In addition to using asynchronous commands, the Pirec client is fully thread-safe. In fact, using multiple threads is another way to allow multiple outstanding commands. It's a recommended practice for multiple threads to share the same instance of the Pirec client. When requests are sent from multiple threads, the requests can be processed concurrently, thus improving overall performance.
+
+### Batching
+
+Bandwidth and latency are often stated as performance metrics in networking systems. Redis is often used as a tool in localhost and datacenter environments where bandwidth is high and latency is low. In these scenarios a third bottleneck appears, number of packets. Pirec batches commands together into a single call to socket.write(...) in order to help the JVM make better use of the available throughput.
+
+Note, this batching is done in a way that still keeps latency low. Pirec will send the first command immediately, and only batch commands when the rate of socket.write(...) is les than the rate of command creation.
+
+Building Pirec
+--------------
 
 Pirec is built using Gradle. You can use the included gradlew scripts to build the library:
 
@@ -107,4 +122,3 @@ I'm not finished with Pirec. Here's a shortlist of what I still want to do:
 * Implement the Redis Geo Commands: http://redis.io/commands#geo
 * Add Pirec to Maven
 * Create a PirecSubscriber client for using Redis subscribed state: http://redis.io/commands/subscribe
-* Improve the socket model to reduce the unnecessary time spent reading
