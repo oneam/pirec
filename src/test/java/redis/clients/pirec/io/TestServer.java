@@ -16,12 +16,11 @@
 package redis.clients.pirec.io;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 
 import redis.clients.pirec.codec.Decoder.DecoderException;
@@ -32,7 +31,7 @@ import redis.clients.pirec.codec.object.RedisObject;
 
 public class TestServer {
 
-    final ConcurrentHashMap<RedisObject, byte[][]> responses = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<RedisObject, RedisObject> responses = new ConcurrentHashMap<>();
     final RedisDecoder decoder = new RedisDecoder();
     final RedisEncoder encoder = new RedisEncoder();
 
@@ -43,6 +42,7 @@ public class TestServer {
         serverSocket = ServerSocketChannel.open();
         serverSocket.bind(null);
         acceptThread = new Thread(this::acceptLoop);
+        acceptThread.setDaemon(true);
         acceptThread.start();
 
         return (InetSocketAddress) serverSocket.getLocalAddress();
@@ -54,6 +54,7 @@ public class TestServer {
                 SocketChannel clientSocket;
                 clientSocket = serverSocket.accept();
                 Thread clientThread = new Thread(() -> readLoop(clientSocket));
+                clientThread.setDaemon(true);
                 clientThread.start();
             }
         } catch (IOException e) {
@@ -72,12 +73,20 @@ public class TestServer {
                 readBuffer.flip();
                 RedisObject request = decoder.decode(readBuffer);
                 while (request != null) {
-                    byte[][] response = responses.get(request);
+                    RedisObject response = responses.get(request);
                     if (response == null) {
-                        response = encoder.encode(RedisObject.error("Response not found"));
+                        response = RedisObject.error("Response not found");
                     }
-                    int responseBytes = Arrays.stream(response).mapToInt(Array::getLength).sum();
-                    if (responseBytes > writeBuffer.remaining()) {
+
+                    int responseBytes = -1;
+                    try {
+                        responseBytes = encoder.encode(response, writeBuffer);
+                    } catch (RedisEncodeException e) {
+                        byte[] crlf = "\r\n".getBytes(StandardCharsets.UTF_8);
+                        writeBuffer.put(crlf);
+                    }
+
+                    if (responseBytes == 0) {
                         writeBuffer.flip();
                         socket.write(writeBuffer);
                         writeBuffer.clear();
@@ -92,20 +101,12 @@ public class TestServer {
                 }
                 readBuffer.compact();
             }
-        } catch (IOException | DecoderException | RedisEncodeException e) {
+        } catch (IOException | DecoderException e) {
             e.printStackTrace();
         }
     }
 
     public void put(RedisObject request, RedisObject response) {
-        try {
-            responses.put(request, encoder.encode(response));
-        } catch (RedisEncodeException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void put(RedisObject request, byte[][] response) {
         responses.put(request, response);
     }
 }

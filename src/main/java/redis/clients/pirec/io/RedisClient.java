@@ -15,9 +15,11 @@
 package redis.clients.pirec.io;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.SocketChannel;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -33,7 +35,7 @@ public class RedisClient {
     final RedisEncoder encoder = new RedisEncoder();
     final RedisDecoder decoder = new RedisDecoder();
 
-    final SocketAdapter socket;
+    SocketChannel socket;
     final ByteBuffer readBuffer = ByteBuffer.allocate(1048576);
     final ByteBuffer writeBuffer = ByteBuffer.allocate(1048576);
 
@@ -46,29 +48,21 @@ public class RedisClient {
     boolean connected = false;
 
     public RedisClient() {
-        this(new SocketChannelAdapter());
-    }
-
-    public RedisClient(SocketAdapter socketAdapter) {
-        this.socket = socketAdapter;
     }
 
     public int numActiveRequests() {
-        synchronized (requestQueue) {
-            return responseQueue.size();
-        }
+        return responseQueue.size();
     }
 
     public CompletableFuture<Void> connect(InetSocketAddress remote) {
-        CompletableFuture<Void> connectFuture = socket.connect(remote).whenComplete((r, e) -> {
-            if (e == null) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                socket = SocketChannel.open(remote);
                 connected = true;
-            } else {
-                onFailed(e);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
         });
-
-        return connectFuture;
     }
 
     public void disconnect() throws Exception {
@@ -106,34 +100,31 @@ public class RedisClient {
         }
     }
 
-    void startRead() {
-        synchronized (sendSync) {
-            if (responseQueue.isEmpty()) {
-                reading = false;
-                return;
-            }
-        }
+    void readLoop() {
+        try {
+            while (true) {
+                if (responseQueue.isEmpty()) {
+                    synchronized (sendSync) {
+                        if (responseQueue.isEmpty()) {
+                            reading = false;
+                            return;
+                        }
+                    }
+                }
 
-        socket.read(readBuffer).whenComplete((bytesRead, e) -> {
-            if (e != null) {
-                onFailed(e);
-                return;
-            }
+                int bytesRead = socket.read(readBuffer);
+                if (bytesRead <= 0) {
+                    onClosed();
+                    return;
+                }
 
-            if (bytesRead <= 0) {
-                onClosed();
-                return;
-            }
-
-            try {
                 readBuffer.flip();
                 processResponses();
                 readBuffer.compact();
-                startRead();
-            } catch (DecoderException | NoSuchElementException e2) {
-                onFailed(e2);
             }
-        });
+        } catch (DecoderException | NoSuchElementException | IOException e) {
+            onFailed(e);
+        }
     }
 
     void processResponses() throws DecoderException {
@@ -146,40 +137,29 @@ public class RedisClient {
         }
     }
 
-    void startWrite() {
+    void writeLoop() {
         try {
-            processRequests(); // Process as many as you can before locking
+            while (true) {
+                if (requestQueue.isEmpty()) {
+                    synchronized (sendSync) {
+                        if (requestQueue.isEmpty()) {
+                            writing = false;
+                            return;
+                        }
+                    }
+                }
 
-            synchronized (sendSync) {
-                processRequests(); // Ensure request queue is empty after locking
-
+                processRequests();
                 writeBuffer.flip();
-                if (!writeBuffer.hasRemaining()) {
-                    writeBuffer.compact();
-                    writing = false;
-                    return;
-                }
 
-                if (!reading) {
-                    reading = true;
-                    CompletableFuture.runAsync(this::startRead);
-                }
-            }
-
-            socket.write(writeBuffer).whenComplete((bytesWritten, e) -> {
-                if (e != null) {
-                    onFailed(e);
-                    return;
-                }
-
+                int bytesWritten = socket.write(writeBuffer);
                 if (bytesWritten <= 0) {
                     return;
                 }
 
                 writeBuffer.compact();
-                startWrite();
-            });
-        } catch (InterruptedException e) {
+            }
+        } catch (InterruptedException | IOException e) {
             onFailed(e);
         }
     }
@@ -203,9 +183,9 @@ public class RedisClient {
     }
 
     public CompletableFuture<RedisObject> sendRequest(RedisObject request) {
-        CompletableFuture<RedisObject> responseFuture = new CompletableFuture<RedisObject>();
-
         synchronized (sendSync) {
+            CompletableFuture<RedisObject> responseFuture = new CompletableFuture<RedisObject>();
+
             if (!connected) {
                 responseFuture.completeExceptionally(new IOException("Redis client not connected"));
                 return responseFuture;
@@ -214,12 +194,17 @@ public class RedisClient {
             responseQueue.add(responseFuture);
             requestQueue.add(request);
 
+            if (!reading) {
+                reading = true;
+                CompletableFuture.runAsync(this::readLoop);
+            }
+
             if (!writing) {
                 writing = true;
-                CompletableFuture.runAsync(this::startWrite);
+                CompletableFuture.runAsync(this::writeLoop);
             }
-        }
 
-        return responseFuture;
+            return responseFuture;
+        }
     }
 }

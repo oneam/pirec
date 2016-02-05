@@ -33,11 +33,12 @@ public class TestClient {
         int numRequests = 10;
         RedisObject request = RedisObject.array(RedisObject.bulkString("PING"));
         RedisObject response = RedisObject.simple("PONG");
-        TestSocketAdapter adapter = new TestSocketAdapter();
-        adapter.put(request, response);
+        TestServer server = new TestServer();
+        server.put(request, response);
+        InetSocketAddress serverAddress = server.start();
 
-        RedisClient client = new RedisClient(adapter);
-        client.connect(new InetSocketAddress("localhost", 6379)).get();
+        RedisClient client = new RedisClient();
+        client.connect(serverAddress).get();
 
         for (int i = 0; i < numRequests; ++i) {
             CompletableFuture<RedisObject> responseFuture = client.sendRequest(request);
@@ -53,11 +54,12 @@ public class TestClient {
         int numRequests = 10000;
         RedisObject request = RedisObject.array(RedisObject.bulkString("PING"));
         RedisObject response = RedisObject.simple("PONG");
-        TestSocketAdapter adapter = new TestSocketAdapter();
-        adapter.put(request, response);
+        TestServer server = new TestServer();
+        server.put(request, response);
+        InetSocketAddress serverAddress = server.start();
 
-        RedisClient client = new RedisClient(adapter);
-        client.connect(new InetSocketAddress("localhost", 6379)).get();
+        RedisClient client = new RedisClient();
+        client.connect(serverAddress).get();
 
         ArrayList<CompletableFuture<RedisObject>> responseFutures = new ArrayList<CompletableFuture<RedisObject>>(
                 numRequests);
@@ -81,11 +83,12 @@ public class TestClient {
         int numRequests = 1000;
         RedisObject request = RedisObject.array(RedisObject.bulkString("PING"));
         RedisObject response = RedisObject.simple("PONG");
-        TestSocketAdapter adapter = new TestSocketAdapter();
-        adapter.put(request, response);
+        TestServer server = new TestServer();
+        server.put(request, response);
+        InetSocketAddress serverAddress = server.start();
 
-        RedisClient client = new RedisClient(adapter);
-        client.connect(new InetSocketAddress("localhost", 6379)).get();
+        RedisClient client = new RedisClient();
+        client.connect(serverAddress).get();
 
         CountDownLatch done = new CountDownLatch(numRequests);
 
@@ -108,10 +111,11 @@ public class TestClient {
     public void test_client_error() throws Exception {
         RedisObject request = RedisObject.array(RedisObject.bulkString("PING"));
         RedisObject response = RedisObject.error("Response not found");
-        TestSocketAdapter adapter = new TestSocketAdapter();
+        TestServer server = new TestServer();
+        InetSocketAddress serverAddress = server.start();
 
-        RedisClient client = new RedisClient(adapter);
-        client.connect(new InetSocketAddress("localhost", 6379)).get();
+        RedisClient client = new RedisClient();
+        client.connect(serverAddress).get();
 
         CompletableFuture<RedisObject> responseFuture = client.sendRequest(request);
         RedisObject actual = responseFuture.get(2, TimeUnit.SECONDS);
@@ -123,9 +127,8 @@ public class TestClient {
     @Test(expectedExceptions = ExecutionException.class)
     public void test_client_not_connected() throws Exception {
         RedisObject request = RedisObject.array(RedisObject.bulkString("PING"));
-        TestSocketAdapter adapter = new TestSocketAdapter();
 
-        RedisClient client = new RedisClient(adapter);
+        RedisClient client = new RedisClient();
 
         CompletableFuture<RedisObject> responseFuture = client.sendRequest(request);
         responseFuture.get(2, TimeUnit.SECONDS);
@@ -134,12 +137,13 @@ public class TestClient {
     @Test(expectedExceptions = ExecutionException.class)
     public void test_client_bad_response() throws Exception {
         RedisObject request = RedisObject.array(RedisObject.bulkString("PING"));
-        RedisObject response = new InvalidResponse();
-        TestSocketAdapter adapter = new TestSocketAdapter();
-        adapter.put(request, response);
+        RedisObject response = new InvalidObject();
+        TestServer server = new TestServer();
+        server.put(request, response);
+        InetSocketAddress serverAddress = server.start();
 
-        RedisClient client = new RedisClient(adapter);
-        client.connect(new InetSocketAddress("localhost", 6379)).get();
+        RedisClient client = new RedisClient();
+        client.connect(serverAddress).get();
 
         CompletableFuture<RedisObject> responseFuture = client.sendRequest(request);
         RedisObject actual = responseFuture.get(2, TimeUnit.SECONDS);
@@ -150,16 +154,17 @@ public class TestClient {
 
     @Test(expectedExceptions = ExecutionException.class)
     public void test_client_bad_request() throws Exception {
-        RedisObject request = new InvalidResponse();
-        TestSocketAdapter adapter = new TestSocketAdapter();
+        RedisObject request = new InvalidObject();
+        TestServer server = new TestServer();
+        InetSocketAddress serverAddress = server.start();
 
-        RedisClient client = new RedisClient(adapter);
-        client.connect(new InetSocketAddress("localhost", 6379)).get();
+        RedisClient client = new RedisClient();
+        client.connect(serverAddress).get();
 
         CompletableFuture<RedisObject> responseFuture = client.sendRequest(request);
         responseFuture.get(2, TimeUnit.SECONDS);
     }
 
-    class InvalidResponse extends RedisObject {
+    class InvalidObject extends RedisObject {
     }
 }
